@@ -1,0 +1,67 @@
+/* Gradient animation for background (used on .bg-gradient) */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Generic fade-in-up */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide down animation for words */
+@keyframes slideDown {
+  from {
+    transform: translateY(-60px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Click into place / bounce */
+@keyframes clickIntoPlace {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    transform: translateY(-5px) scale(1.05);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Subtle glow effect for the final word */
+@keyframes glowGray {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(150, 150, 150, 0.15),
+                 0 0 12px rgba(150, 150, 150, 0.08);
+  }
+  50% {
+    text-shadow: 0 0 12px rgba(150, 150, 150, 0.2),
+                 0 0 18px rgba(150, 150, 150, 0.12);
+  }
+}
+
+/* Blue glow effect for the final word */
+@keyframes glowBlue {
+  0%, 100% {
+    text-shadow: 0 0 8px rgba(56, 116, 240, 0.12),
+                 0 0 12px rgba(56, 116, 240, 0.06);
+  }
+  50% {
+    text-shadow: 0 0 14px rgba(56, 116, 240, 0.18),
+                 0 0 20px rgba(56, 116, 240, 0.12);
+  }
+}

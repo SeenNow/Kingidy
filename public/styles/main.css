@@ -1,0 +1,300 @@
+:root{
+  --bg: #f7fbff;
+  --muted-bg: #eef7ff;
+  --text-main: #04293a;          /* deep blue */
+  --text-sub: #4b6b85;           /* muted blue-gray */
+  --nav-bg: rgba(255, 255, 255, 0.78);
+  --cta-bg: linear-gradient(90deg, #60a5fa, #3b82f6);
+  --cta-bg-solid: #3b82f6;
+  --border: rgba(3, 37, 65, 0.06);
+  --canvas-opacity: 0.10;
+  --blur-level: 6px;
+  --accent-gradient: linear-gradient(90deg, #93c5fd, #3b82f6);
+}
+
+/* minimal reset */
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+html,body,#root{
+  height:100%;
+}
+
+body{
+  font-family: 'Poppins', sans-serif;
+  background: var(--bg);
+  overflow:hidden;
+}
+
+/* root is now neutral and transparent looking */
+.app-root {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  background: transparent;
+  overflow: hidden;
+}
+
+/* Canvas layer subtle blue tint */
+.canvas-layer {
+  position: absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  opacity: var(--canvas-opacity);
+  filter: blur(2.5px) contrast(0.94) saturate(0.95) hue-rotate(-10deg);
+  pointer-events:none;
+  z-index: 2;
+}
+
+/* Nav: light with subtle blue accents */
+.nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  z-index: 30;
+  background: var(--nav-bg);
+  backdrop-filter: blur(var(--blur-level));
+  border-bottom: 1px solid var(--border);
+}
+
+/* logo */
+.logo {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: var(--text-main);
+  letter-spacing: 1px;
+}
+
+/* nav-right grouping */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* nav links */
+.nav-links {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 0.95rem;
+  opacity: 0.9;
+  transition: color 0.18s ease, opacity 0.18s ease;
+}
+
+.nav-link:hover {
+  color: var(--text-sub);
+  opacity: 1;
+}
+
+/* CTA button now neutral */
+.nav-cta {
+  display: inline-block;
+  padding: 8px 14px;
+  background: var(--cta-bg);
+  color: #ffffff;
+  font-weight: 700;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.95rem;
+  border: none;
+  box-shadow: 0 6px 18px rgba(59,130,246,0.12);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.nav-cta:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(59,130,246,0.18);
+}
+
+/* content offset to clear the nav */
+.content{
+  position: absolute;
+  top: calc(50% + 24px);
+  left: 10%;
+  transform: translateY(-50%);
+  text-align: left;
+  z-index: 10;
+  padding: 0 20px;
+  max-width: 800px;
+}
+
+/* Wrapper for text content */
+.content-text {
+  display: block;
+}
+
+/* Main title */
+.title{
+  font-size: clamp(2.5rem, 7vw, 6rem);
+  font-weight: 900;
+  color: var(--text-main);
+  margin-bottom: 0.5rem;
+  line-height: 1.05;
+  letter-spacing: 1px;
+}
+
+/* Words container */
+.word-container {
+  height: clamp(3rem, 8vw, 7rem);
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+/* Individual word styling; now neutral text (no gradient) */
+.word {
+  font-size: clamp(2.5rem, 7vw, 6rem);
+  font-weight: 900;
+  margin: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  color: var(--text-main);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  visibility: hidden;
+  opacity: 0;
+}
+
+/* Visible/active word (slide-in) */
+.word.active {
+  visibility: visible;
+  opacity: 1;
+  animation: slideDown 0.6s ease-out forwards;
+}
+
+/* Final word receives a subtle bounce (no colored glow) */
+.word.final.active {
+  animation: slideDown 0.6s ease-out forwards, clickIntoPlace 0.3s ease-out 0.45s forwards;
+}
+
+/* Optional subtle highlight on final */
+.word.final.active.glow {
+  animation: slideDown 0.6s ease-out forwards, clickIntoPlace 0.3s ease-out 0.45s forwards, glowBlue 3s ease-in-out 0.9s infinite;
+}
+
+/* Subtext colors */
+.sub {
+  font-size: clamp(1rem, 2.5vw, 1.8rem);
+  font-weight: 700;
+  color: var(--text-sub);
+  line-height: 1.5;
+}
+
+/* Fade-in helpers */
+.content.show .title { animation: fadeInUp 1s ease-out both; }
+.content.show .sub { animation: fadeInUp 1s ease-out 0.5s both; }
+
+/* Features section */
+.features {
+  position: absolute;
+  left: 10%;
+  right: 8%;
+  bottom: 110px; /* sit above footer */
+  z-index: 8;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  max-width: 1200px;
+}
+
+.feature-card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(245,250,255,0.85));
+  border: 1px solid var(--border);
+  padding: 18px;
+  border-radius: 12px;
+  box-shadow: 0 8px 30px rgba(3,37,65,0.04);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.feature-icon {
+  font-size: 1.4rem;
+  color: var(--cta-bg-solid);
+  font-weight: 800;
+}
+
+.feature-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.feature-desc {
+  font-size: 0.95rem;
+  color: var(--text-sub);
+  margin-top: auto;
+  line-height: 1.35;
+}
+
+/* Footer */
+.footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 30;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(6px);
+  border-top: 1px solid var(--border);
+  color: var(--text-sub);
+  font-size: 0.95rem;
+  padding: 0 16px;
+}
+
+/* Footer links */
+.footer a {
+  color: var(--text-sub);
+  text-decoration: none;
+  font-weight: 600;
+  margin-left: 10px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1000px) {
+  .features {
+    grid-template-columns: repeat(2, 1fr);
+    left: 8%;
+    right: 8%;
+    bottom: 110px;
+  }
+}
+
+@media (max-width: 720px) {
+  .nav { padding: 0 16px; height: 56px; }
+  .nav-links { display: none; }
+  .nav-cta { padding: 6px 10px; font-size: 0.9rem; }
+  .content { left: 6%; max-width: 85%; top: calc(50% + 20px); }
+  .features {
+    grid-template-columns: 1fr;
+    left: 6%;
+    right: 6%;
+    bottom: 90px;
+  }
+}
