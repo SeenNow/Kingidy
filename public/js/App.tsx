@@ -2,177 +2,204 @@
 /// <reference types="react-dom" />
 
 import React, { useRef, useEffect, useState } from 'react';
-import * as THREE from 'three';
 import NavBar from './components/NavBar';
+import Footer from './components/Footer';
+import ParticleCanvas from './components/ParticleCanvas';
 
 const App: React.FC = () => {
-    const canvasRef = useRef<HTMLDivElement>(null);
-    const [showText, setShowText] = useState(false);
-    const [visibleWords, setVisibleWords] = useState<number[]>([]);
-    const [isComplete, setIsComplete] = useState(false);
+	const canvasRef = useRef<HTMLDivElement>(null);
 
-    const words = ['Science', 'Maths', 'Law', 'Computer', 'Study'];
+	const [showText, setShowText] = useState(false);
+	const [animationsActive, setAnimationsActive] = useState(true);
 
-    useEffect(() => {
-        if (!canvasRef.current) return;
+	// slot animation
+	const [slotIndex, setSlotIndex] = useState(0);
+	const slotIndexRef = useRef<number>(0);
+	const [isTransitioning, setIsTransitioning] = useState(true);
+	const wordListRef = useRef<HTMLDivElement | null>(null);
+	const [itemHeight, setItemHeight] = useState<number>(64); // increased fallback height
 
-        // Scene setup
-        const scene = new THREE.Scene();
-        const camera = new THREE.PerspectiveCamera(
-            75,
-            window.innerWidth / window.innerHeight,
-            0.1,
-            1000
-        );
-        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+	// prefer reduced motion
+	const prefersReducedMotionRef = useRef<boolean>(
+		typeof window !== 'undefined' ? window.matchMedia('(prefers-reduced-motion: reduce)').matches : false
+	);
 
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        canvasRef.current.appendChild(renderer.domElement);
+	const words = ['Science', 'Maths', 'Law', 'Computer', 'Study'];
 
-        camera.position.z = 5;
+	// Clearable showText timeout ref (cleanly clear at unmount)
+	const showTextTimeoutRef = useRef<number | null>(null);
 
-        // Particles: bluish and softened
-        const particlesGeometry = new THREE.BufferGeometry();
-        const particlesCount = 700;
-        const posArray = new Float32Array(particlesCount * 3);
-        for (let i = 0; i < particlesCount * 3; i++) posArray[i] = (Math.random() - 0.5) * 10;
-        particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+	useEffect(() => {
+		// Slot animation logic (CSS transform driven) -- independent of three.js
+		if (!showText || !animationsActive) return;
 
-        const particlesMaterial = new THREE.PointsMaterial({
-            size: 0.012,
-            color: 0x79b7ff,      // bluish
-            transparent: true,
-            opacity: 0.55,
-            depthWrite: false
-        });
+		// measure item height once the words are visible
+		const measureHeight = () => {
+			const firstChild = wordListRef.current?.querySelector('.word') as HTMLElement | null;
+			if (firstChild) {
+				setItemHeight(firstChild.offsetHeight || 48);
+			}
+		};
 
-        const particlesMesh = new THREE.Points(particlesGeometry, particlesMaterial);
-        scene.add(particlesMesh);
+		measureHeight();
+		window.addEventListener('resize', measureHeight);
 
-        // Show text after a brief delay
-        setTimeout(() => setShowText(true), 500);
+		// Setup event listener for wrap-reset using duplicated list trick
+		const sliderEl = wordListRef.current;
+		const safeHandleTransitionEnd = () => {
+			if (slotIndexRef.current >= words.length) {
+				// Remove transition and do instant snap back to start
+				setIsTransitioning(false);
 
-        // Animation loop
-        let time = 0;
-        const animate = () => {
-            requestAnimationFrame(animate);
-            time += 0.001;
-            particlesMesh.rotation.y = time * 0.4;
-            particlesMesh.rotation.x = time * 0.3;
-            renderer.render(scene, camera);
-        };
-        animate();
+				setSlotIndex((prev) => {
+					const newIndex = prev - words.length;
+					slotIndexRef.current = newIndex;
+					return newIndex;
+				});
 
-        // Handle window resize
-        const handleResize = () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        };
-        window.addEventListener('resize', handleResize);
+				// Re-enable transition on next frame so subsequent moves animate normally
+				requestAnimationFrame(() => {
+					setTimeout(() => setIsTransitioning(true), 20);
+				});
+			}
+		};
 
-        // Cleanup
-        return () => {
-            window.removeEventListener('resize', handleResize);
-            canvasRef.current?.removeChild(renderer.domElement);
-            particlesGeometry.dispose();
-            particlesMaterial.dispose();
-            renderer.dispose();
-        };
-    }, []);
+		if (sliderEl) {
+			sliderEl.addEventListener('transitionend', safeHandleTransitionEnd);
+		}
 
-    useEffect(() => {
-        if (!showText) return;
-        
-        let wordIndex = 0;
-        const interval = setInterval(() => {
-            if (wordIndex < words.length) {
-                setVisibleWords((prev) => [...prev, wordIndex]);
-                wordIndex++;
-                
-                // If this was the last word, wait then clear everything
-                if (wordIndex >= words.length) {
-                    clearInterval(interval);
-                    setTimeout(() => {
-                        setIsComplete(true);
-                    }, 2000);
-                }
-            }
-        }, 1500); // Each word appears every 1.5 seconds
-        
-        return () => clearInterval(interval);
-    }, [showText, words.length]);
+		// Respect OS-level reduced motion preference
+		const isReduced = prefersReducedMotionRef.current;
+		const intervalMs = isReduced ? 3000 : 1500;
 
-    const rootClasses = `app-root ${showText ? 'show' : ''} ${isComplete ? 'empty' : ''}`;
+		// set up endless slot reel animation
+		const interval = window.setInterval(() => {
+			setSlotIndex((prev) => {
+				const next = prev + 1;
+				slotIndexRef.current = next;
+				return next;
+			});
+		}, intervalMs);
 
-    if (isComplete) {
-        return <div className="app-root empty"></div>;
-    }
+		return () => {
+			clearInterval(interval);
+			window.removeEventListener('resize', measureHeight);
+			if (sliderEl) sliderEl.removeEventListener('transitionend', safeHandleTransitionEnd);
+		};
+	}, [showText, animationsActive, words.length]);
 
-    return (
-        <div className={rootClasses}>
-            <NavBar />
+	// stop THREE render when animation canvas is turned off (safeguard)
+	useEffect(() => {
+		if (animationsActive) return;
+	}, [animationsActive]);
 
-            <div ref={canvasRef} className="canvas-layer" />
+	// Keep root visible and show content, but use animationsActive to control animation elements
+	const rootClasses = `app-root ${showText ? 'show' : ''}`;
 
-            <div className={`content ${showText ? 'show' : ''}`}>
-                <div className="content-text">
-                    <h1 className="title">Kingidy for</h1>
-                    <p className="sub">Your Personalized Study Buddy</p>
-                </div>
-            </div>
+	// Render: duplicate words array so sliding can continue into second copy then snap to start
+	const doubledWords = [...words, ...words];
 
-            <div className={`word-container-right ${showText ? 'show' : ''}`}>
-                <div className="word-list">
-                    {words.map((word, index) => {
-                        const isVisible = visibleWords.includes(index);
-                        const classes = `word ${isVisible ? 'visible' : ''} word-color-${index}`;
-                        return (
-                            <h2 
-                                key={word} 
-                                className={classes}
-                            >
-                                {word}
-                            </h2>
-                        );
-                    })}
-                </div>
-            </div>
+	// Inline CSS for slot reel / ensure consistent layout independent of external CSS
+	const viewportStyle: React.CSSProperties = {
+		height: itemHeight,
+		overflow: 'hidden',
+		display: 'flex',
+		alignItems: 'center',
+		width: 240, // slightly larger width for visibility
+		position: 'absolute', // ensure visible on the page
+		top: 160,               // position near the top-right
+		right: 48,
+		zIndex: 40,             // ensure it's above the threejs canvas
+		pointerEvents: 'none',  // prevent blocking clicks on the canvas/other elements
+	};
 
-            {/* Features section */}
-            <section id="features" className="features" aria-labelledby="features-heading">
-                <div className="feature-card" role="article" aria-label="Adaptive Learning">
-                    <div className="feature-icon">🧠</div>
-                    <div className="feature-title">Adaptive Learning</div>
-                    <div className="feature-desc">Content and quizzes adapt to your progress, helping you focus on what matters.</div>
-                </div>
+	const sliderStyle: React.CSSProperties = {
+		transform: `translateY(-${slotIndex * itemHeight}px)`,
+		transition:
+			isTransitioning && !prefersReducedMotionRef.current ? 'transform 0.55s cubic-bezier(.2,.8,.2,1)' : 'none',
+		willChange: 'transform',
+		display: 'block',
+	};
 
-                <div className="feature-card" role="article" aria-label="Smart Scheduling">
-                    <div className="feature-icon">📅</div>
-                    <div className="feature-title">Smart Scheduling</div>
-                    <div className="feature-desc">Auto-generated study plans align with your goals and availability.</div>
-                </div>
+	const wordStyle: React.CSSProperties = {
+		height: itemHeight,
+		margin: 0,
+		padding: '6px 10px',
+		display: 'flex',
+		alignItems: 'center',
+		justifyContent: 'flex-start',
+		fontSize: 20,
+		color: '#063642',        // dark teal for better contrast vs pale background
+		fontWeight: 700,         // make the words bolder to stand out
+		pointerEvents: 'auto',   // words can be interacted with if needed in the future
+	};
 
-                <div className="feature-card" role="article" aria-label="Personalized Content">
-                    <div className="feature-icon">📚</div>
-                    <div className="feature-title">Personalized Content</div>
-                    <div className="feature-desc">Get topic-focused summaries, flashcards, and exercises tailored to you.</div>
-                </div>
+	return (
+		<div className={rootClasses}>
+			<NavBar />
 
-                <div className="feature-card" role="article" aria-label="Progress Tracking">
-                    <div className="feature-icon">📈</div>
-                    <div className="feature-title">Progress Tracking</div>
-                    <div className="feature-desc">Visualize your improvements and get actionable insights to keep progressing.</div>
-                </div>
-            </section>
+			{/* Particle canvas component - Three.js handled inside */}
+			<ParticleCanvas
+				active={animationsActive}
+				className={`canvas-layer ${animationsActive ? 'show' : ''}`}
+				onReady={() => setShowText(true)}
+			/>
 
-            <footer className="footer">
-                <span>© {new Date().getFullYear()} Kingidy</span>
-                <a href="#privacy">Privacy</a>
-                <a href="#terms">Terms</a>
-            </footer>
-        </div>
-    );
+			{/* Keep primary content visible always */}
+			<div className={`content ${showText ? 'show' : ''}`}>
+				<div className="content-text">
+					<h1 className="title">Kingidy for</h1>
+					<p className="sub">Your Personalized Study Buddy</p>
+				</div>
+			</div>
+
+			{/* word container now acts as a CSS/JS slot machine reel (not driven by three.js) */}
+			<div className={`word-container-right ${animationsActive ? 'show' : ''}`} aria-hidden={!showText}>
+				{/* accessible live region, viewport restricts visible area */}
+				<div className="word-viewport" style={viewportStyle} role="status" aria-live="polite">
+					<div ref={wordListRef} className="word-list slider" style={sliderStyle}>
+						{doubledWords.map((word, idx) => {
+							const classes = `word word-color-${idx % words.length}`;
+							return (
+								<h2 key={`${word}-${idx}`} className={classes} style={wordStyle}>
+									{word}
+								</h2>
+							);
+						})}
+					</div>
+				</div>
+			</div>
+
+			{/* Features section */}
+			<section id="features" className="features" aria-labelledby="features-heading">
+				<div className="feature-card" role="article" aria-label="Adaptive Learning">
+					<div className="feature-icon">🧠</div>
+					<div className="feature-title">Adaptive Learning</div>
+					<div className="feature-desc">Content and quizzes adapt to your progress, helping you focus on what matters.</div>
+				</div>
+
+				<div className="feature-card" role="article" aria-label="Smart Scheduling">
+					<div className="feature-icon">📅</div>
+					<div className="feature-title">Smart Scheduling</div>
+					<div className="feature-desc">Auto-generated study plans align with your goals and availability.</div>
+				</div>
+
+				<div className="feature-card" role="article" aria-label="Personalized Content">
+					<div className="feature-icon">📚</div>
+					<div className="feature-title">Personalized Content</div>
+					<div className="feature-desc">Get topic-focused summaries, flashcards, and exercises tailored to you.</div>
+				</div>
+
+				<div className="feature-card" role="article" aria-label="Progress Tracking">
+					<div className="feature-icon">📈</div>
+					<div className="feature-title">Progress Tracking</div>
+					<div className="feature-desc">Visualize your improvements and get actionable insights to keep progressing.</div>
+				</div>
+			</section>
+
+			<Footer />
+		</div>
+	);
 };
 
 export default App;
