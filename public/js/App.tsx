@@ -3,12 +3,13 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import * as THREE from 'three';
+import NavBar from './components/NavBar';
 
 const App: React.FC = () => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [showText, setShowText] = useState(false);
-    const [currentWord, setCurrentWord] = useState(0);
-    const [isAnimating, setIsAnimating] = useState(true);
+    const [visibleWords, setVisibleWords] = useState<number[]>([]);
+    const [isComplete, setIsComplete] = useState(false);
 
     const words = ['Science', 'Maths', 'Law', 'Computer', 'Study'];
 
@@ -82,55 +83,59 @@ const App: React.FC = () => {
 
     useEffect(() => {
         if (!showText) return;
+        
+        let wordIndex = 0;
         const interval = setInterval(() => {
-            setCurrentWord((prev) => {
-                if (prev < words.length - 1) return prev + 1;
-                clearInterval(interval);
-                setIsAnimating(false);
-                return prev;
-            });
-        }, 1500);
+            if (wordIndex < words.length) {
+                setVisibleWords((prev) => [...prev, wordIndex]);
+                wordIndex++;
+                
+                // If this was the last word, wait then clear everything
+                if (wordIndex >= words.length) {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        setIsComplete(true);
+                    }, 2000);
+                }
+            }
+        }, 1500); // Each word appears every 1.5 seconds
+        
         return () => clearInterval(interval);
-    }, [showText]);
+    }, [showText, words.length]);
 
-    const rootClasses = `app-root ${showText ? 'show' : ''}`;
+    const rootClasses = `app-root ${showText ? 'show' : ''} ${isComplete ? 'empty' : ''}`;
+
+    if (isComplete) {
+        return <div className="app-root empty"></div>;
+    }
 
     return (
         <div className={rootClasses}>
-            <nav className="nav" role="navigation" aria-label="Main Navigation">
-                <div className="nav-left"><div className="logo">Kingidy</div></div>
-                <div className="nav-right">
-                    <div className="nav-links">
-                        <a className="nav-link" href="#home">Home</a>
-                        <a className="nav-link" href="#features">Features</a>
-                        <a className="nav-link" href="#subjects">Subjects</a>
-                        <a className="nav-link" href="#about">About</a>
-                    </div>
-                    <a className="nav-cta" href="#get-started">Get Started</a>
-                </div>
-            </nav>
+            <NavBar />
 
             <div ref={canvasRef} className="canvas-layer" />
 
             <div className={`content ${showText ? 'show' : ''}`}>
                 <div className="content-text">
                     <h1 className="title">Kingidy for</h1>
-
-                    <div className="word-container">
-                        {words.map((word, index) => {
-                            const isActive = index === currentWord;
-                            const isFinal = index === words.length - 1;
-                            const finalGlow = !isAnimating && isActive && isFinal ? 'glow' : '';
-                            const classes = `word ${isActive ? 'active' : ''} ${isFinal ? 'final' : ''} ${finalGlow}`;
-                            return (
-                                <h2 key={word} className={classes}>
-                                    "{word}"
-                                </h2>
-                            );
-                        })}
-                    </div>
-
                     <p className="sub">Your Personalized Study Buddy</p>
+                </div>
+            </div>
+
+            <div className={`word-container-right ${showText ? 'show' : ''}`}>
+                <div className="word-list">
+                    {words.map((word, index) => {
+                        const isVisible = visibleWords.includes(index);
+                        const classes = `word ${isVisible ? 'visible' : ''} word-color-${index}`;
+                        return (
+                            <h2 
+                                key={word} 
+                                className={classes}
+                            >
+                                {word}
+                            </h2>
+                        );
+                    })}
                 </div>
             </div>
 
