@@ -7,3 +7,6 @@ build/
 coverage/
 .vscode/
 .idea/
+server/dev.db
+server/*.db
+docs/DEPLOYMENT.md

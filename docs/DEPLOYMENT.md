@@ -19,328 +19,247 @@ This creates optimized files in the `dist/` directory.
 ### 1. Static Hosting (Recommended for Web App)
 
 The application is a static web app and can be deployed to any static hosting service.
+````markdown
+# Kingidy Architecture
 
-#### Netlify
+## System Overview
 
-1. Install Netlify CLI:
-```bash
-npm install -g netlify-cli
+Kingidy is a client-side web application built with React that processes academic documents in the browser. The application uses a modular architecture with clear separation of concerns.
+
+## Architecture Diagram
+
+```
+┌─────────────────────────────────────────────┐
+│            User Interface (React)            │
+├─────────────────────────────────────────────┤
+│  ┌──────────────┐  ┌──────────────┐        │
+│  │   Document   │  │   Document   │        │
+│  │   Uploader   │  │    Viewer    │        │
+│  └──────────────┘  └──────────────┘        │
+│         ↓                  ↓                 │
+│  ┌──────────────────────────────┐          │
+│  │      Document List           │          │
+│  └──────────────────────────────┘          │
+├─────────────────────────────────────────────┤
+│          Service Layer                       │
+│  ┌──────────────────────────────┐          │
+│  │    Document Service          │          │
+│  │  - Upload & Processing       │          │
+│  │  - In-Memory Storage (Map)   │          │
+│  │  - Text Extraction           │          │
+│  │  - Search                    │          │
+│  └──────────────────────────────┘          │
+├─────────────────────────────────────────────┤
+│        Document Processors                   │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐ │
+│  │  PDF.js  │  │ Mammoth  │  │   Text   │ │
+│  └──────────┘  └──────────┘  └──────────┘ │
+└─────────────────────────────────────────────┘
 ```
 
-2. Deploy:
-```bash
-netlify deploy --prod --dir=dist
+## Component Architecture
+
+### 1. App Component (Container)
+- **Purpose**: Main application container
+- **Responsibilities**:
+  - State management for documents
+  - Orchestrates child components
+  - Handles document selection and clearing
+- **State**:
+  - `documents`: Array of all uploaded documents
+  - `selectedDocument`: Currently viewed document
+
+### 2. DocumentUploader Component
+- **Purpose**: Handle file uploads
+- **Responsibilities**:
+  - File input handling
+  - Upload progress indication
+  - Error handling
+  - Trigger document processing
+- **Props**:
+  - `onDocumentAdded`: Callback when document is processed
+
+### 3. DocumentList Component
+- **Purpose**: Display all uploaded documents
+- **Responsibilities**:
+  - Render document items
+  - Handle document selection
+  - Delete documents
+- **Props**:
+  - `documents`: Array of documents
+  - `onDocumentSelect`: Callback for document selection
+  - `selectedDocumentId`: ID of currently selected document
+
+### 4. DocumentViewer Component
+- **Purpose**: Display document contents
+- **Responsibilities**:
+  - Render document text
+  - Search functionality
+  - Highlight search results
+  - Display document metadata
+- **Props**:
+  - `document`: Document object to display
+
+## Service Layer
+
+### DocumentService
+
+The DocumentService is a singleton that manages all document operations:
+
+#### Storage
+- Uses JavaScript `Map` for in-memory storage
+- Key: Document ID (timestamp-based)
+- Value: Document object with metadata and text
+
+#### Document Processing Pipeline
+```
+File Upload → Type Detection → Text Extraction → Metadata Generation → Storage
 ```
 
-#### Vercel
+#### Supported Operations
+1. **addDocument(id, document)**: Store document in memory
+2. **getDocument(id)**: Retrieve document by ID
+3. **getAllDocuments()**: Get all stored documents
+4. **removeDocument(id)**: Delete document from memory
+5. **processDocument(file)**: Main processing pipeline
+6. **extractPdfText(file)**: PDF text extraction
+7. **extractDocxText(file)**: DOCX text extraction
+8. **extractTxtText(file)**: Plain text reading
+9. **searchInDocuments(query)**: Cross-document search
+10. **clearAllDocuments()**: Clear all stored documents
 
-1. Install Vercel CLI:
-```bash
-npm install -g vercel
-```
+## Data Models
 
-2. Deploy:
-```bash
-vercel --prod
-```
-
-#### GitHub Pages
-
-1. Add to `package.json`:
-```json
+### Document Object
+```javascript
 {
-  "homepage": "https://yourusername.github.io/kingidy",
-  "scripts": {
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
-  }
+  id: String,              // Unique identifier (timestamp)
+  name: String,            // Original filename
+  type: String,            // File extension (pdf, docx, txt)
+  size: Number,            // File size in bytes
+  uploadedAt: String,      // ISO timestamp
+  text: String,            // Extracted text content
+  wordCount: Number        // Total words in document
 }
 ```
 
-2. Install gh-pages:
-```bash
-npm install --save-dev gh-pages
-```
-
-3. Deploy:
-```bash
-npm run deploy
-```
-
-#### AWS S3 + CloudFront
-
-1. Create S3 bucket
-2. Enable static website hosting
-3. Upload `dist/` contents to S3
-4. Configure CloudFront distribution (optional, for CDN)
-
-#### Azure Static Web Apps
-
-1. Create Azure Static Web App
-2. Connect to GitHub repository
-3. Configure build:
-   - App location: `/`
-   - Output location: `dist`
-   - Build command: `npm run build`
-
-### 2. Docker Deployment
-
-Create a `Dockerfile`:
-
-```dockerfile
-# Build stage
-FROM node:18-alpine AS build
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-
-# Production stage
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
-
-Build and run:
-```bash
-docker build -t kingidy .
-docker run -p 8080:80 kingidy
-```
-
-### 3. Traditional Web Server
-
-#### Nginx
-
-```nginx
-server {
-    listen 80;
-    server_name your-domain.com;
-    root /var/www/kingidy/dist;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    # Enable gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
+### Search Result Object
+```javascript
+{
+  documentId: String,      // Document ID
+  documentName: String,    // Document name
+  snippet: String,         // Context around match
+  position: Number         // Character position in text
 }
 ```
 
-#### Apache
+## Text Extraction
 
-Create `.htaccess` in `dist/`:
-```apache
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteBase /
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
-</IfModule>
-```
+### PDF Processing (PDF.js)
+- Loads PDF as ArrayBuffer
+- Iterates through all pages
+- Extracts text items from each page
+- Concatenates into full text
 
-## Environment Configuration
+### DOCX Processing (Mammoth)
+- Loads DOCX as ArrayBuffer
+- Extracts raw text (no styling)
+- Returns plain text content
+
+### TXT Processing
+- Direct file.text() reading
+- No special processing needed
+
+## State Management
+
+Currently uses React's built-in state management:
+- Component state for UI interactions
+- Props for data flow
+- Service singleton for data persistence
+
+### Future Considerations
+- Consider Redux/Context API for complex state
+- Add localStorage for persistence across sessions
+- Implement undo/redo functionality
+
+## Performance Considerations
+
+### Current Implementation
+- In-memory storage: Fast but limited by browser memory
+- Client-side processing: No server dependency
+- Single-threaded: May block UI for large files
+
+### Optimization Opportunities
+1. **Web Workers**: Process documents in background thread
+2. **Lazy Loading**: Load documents on-demand
+3. **Virtualization**: Render large documents efficiently
+4. **Caching**: Cache processed documents
+
+## Security Considerations
+
+1. **Client-Side Processing**: Documents never leave the browser
+2. **No Server Upload**: Privacy-focused approach
+3. **File Type Validation**: Checks file extensions
+4. **Error Handling**: Graceful failure for malformed files
+
+## Extensibility
+
+### Adding New Document Types
+1. Add extraction method to DocumentService
+2. Update file input accept attribute
+3. Add case to processDocument switch
+
+### Mobile Apps (Future)
+The architecture supports React Native conversion:
+- Service layer can be reused
+- Components need mobile-specific versions
+- Document pickers replace file input
+- Consider native libraries for better performance
+
+## Browser Compatibility
+
+- Modern browsers with ES6+ support
+- FileReader API for file handling
+- Required APIs:
+  - File API
+  - ArrayBuffer
+  - Promise
+  - Map
+
+## Build and Deployment
 
 ### Development
-```bash
-npm start
-```
-Runs on `http://localhost:3000`
+- Webpack Dev Server with hot reload
+- Source maps for debugging
+- Fast refresh for React components
 
 ### Production
-Set environment variables if needed:
-```bash
-NODE_ENV=production npm run build
+- Minified bundle
+- Tree shaking for smaller size
+- Optimized assets
+- Static file deployment (any web server)
+
+## Testing Strategy (Future)
+
+1. **Unit Tests**:
+   - DocumentService methods
+   - Text extraction functions
+   - Search functionality
+
+2. **Component Tests**:
+   - Component rendering
+   - User interactions
+   - Props handling
+
+3. **Integration Tests**:
+   - Document upload flow
+   - Search across documents
+   - Document deletion
+
+4. **E2E Tests**:
+   - Complete user workflows
+   - Cross-browser testing
+   - Performance testing
+
+````
 ```
-
-## Performance Optimization
-
-### 1. Code Splitting
-Already implemented with webpack dynamic imports for PDF.js.
-
-### 2. Compression
-Enable gzip/brotli compression on your server:
-
-**Nginx:**
-```nginx
-gzip on;
-gzip_comp_level 6;
-gzip_types text/plain text/css application/json application/javascript;
-```
-
-### 3. CDN
-Use a CDN for static assets:
-- Cloudflare
-- AWS CloudFront
-- Azure CDN
-
-### 4. Caching
-Set cache headers for static assets:
-
-**Nginx:**
-```nginx
-location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-    expires 1y;
-    add_header Cache-Control "public, immutable";
-}
-```
-
-## Security Best Practices
-
-### 1. HTTPS
-Always use HTTPS in production. Most hosting providers offer free SSL certificates via Let's Encrypt.
-
-### 2. Security Headers
-Add security headers to your server configuration:
-
-```nginx
-add_header X-Frame-Options "SAMEORIGIN" always;
-add_header X-Content-Type-Options "nosniff" always;
-add_header X-XSS-Protection "1; mode=block" always;
-add_header Referrer-Policy "no-referrer-when-downgrade" always;
-```
-
-### 3. Content Security Policy
-```nginx
-add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline';" always;
-```
-
-## Monitoring
-
-### Error Tracking
-Consider integrating error tracking services:
-- Sentry
-- Rollbar
-- LogRocket
-
-### Analytics
-Add analytics to track usage:
-- Google Analytics
-- Plausible (privacy-focused)
-- Matomo
-
-## CI/CD
-
-### GitHub Actions
-
-Create `.github/workflows/deploy.yml`:
-
-```yaml
-name: Deploy
-
-on:
-  push:
-    branches: [ main ]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v2
-    
-    - name: Setup Node.js
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Build
-      run: npm run build
-      
-    - name: Deploy to Netlify
-      uses: netlify/actions/cli@master
-      with:
-        args: deploy --prod --dir=dist
-      env:
-        NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-        NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-```
-
-## Troubleshooting
-
-### Build Fails
-- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
-- Clear cache: `rm -rf dist && npm run build`
-
-### Large Bundle Size
-- The PDF.js library is large but necessary
-- Consider lazy loading if not all users need PDF support
-- Use code splitting (already implemented)
-
-### Routing Issues
-- Ensure server redirects all routes to index.html
-- Check .htaccess or nginx configuration
-
-## Scaling
-
-### Horizontal Scaling
-The application is stateless and can be easily scaled horizontally by adding more instances behind a load balancer.
-
-### Database Migration (Future)
-Currently uses in-memory storage. For persistent storage:
-1. Add backend API (Node.js/Python)
-2. Use database (PostgreSQL/MongoDB)
-3. Update documentService to use API calls
-4. Add authentication
-
-## Cost Estimates
-
-### Free Tier Options
-- Netlify: Free tier available (100GB bandwidth)
-- Vercel: Free tier available
-- GitHub Pages: Free for public repositories
-- Cloudflare Pages: Free tier available
-
-### Paid Options
-- AWS S3 + CloudFront: ~$1-5/month for small traffic
-- Azure Static Web Apps: ~$9/month
-- DigitalOcean: ~$5/month for basic droplet
-
-## Maintenance
-
-### Regular Updates
-```bash
-# Check for outdated packages
-npm outdated
-
-# Update dependencies
-npm update
-
-# Rebuild
-npm run build
-```
-
-### Security Updates
-```bash
-# Check for vulnerabilities
-npm audit
-
-# Fix vulnerabilities
-npm audit fix
-```
-
-## Support
-
-For deployment issues:
-1. Check browser console for errors
-2. Verify all files are uploaded
-3. Check server logs
-4. Ensure HTTPS is properly configured
-5. Test with different browsers
-
-## Next Steps
-
-After deployment:
-1. Test all features in production
-2. Monitor performance and errors
-3. Gather user feedback
-4. Plan mobile app deployment
-5. Consider backend integration for persistence
