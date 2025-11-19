@@ -9,6 +9,7 @@ import Home from './pages/Home';
 import Features from './pages/Features';
 import Subjects from './pages/Subjects';
 import About from './pages/About';
+import ChatPage from './pages/ChatPage';
 import { ROUTES } from './constants/routes';
 
 const App: React.FC = () => {
@@ -19,6 +20,7 @@ const App: React.FC = () => {
 				<Route path={ROUTES.HOME} element={<Home />} />
 				<Route path={ROUTES.FEATURES} element={<Features />} />
 				<Route path={ROUTES.SUBJECTS} element={<Subjects />} />
+				<Route path={ROUTES.CHAT} element={<ChatPage />} />
 				<Route path={ROUTES.ABOUT} element={<About />} />
 			</Routes>
 			<Footer />

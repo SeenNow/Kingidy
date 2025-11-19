@@ -1,0 +1,38 @@
+# Sample GraphQL queries to test the Chat API
+
+# Get chats for demo user (seeded with demo@kingidy.dev -> id '00000000-...')
+query GetChats {
+  getChats(userId: "00000000-0000-0000-0000-000000000000") {
+    id
+    title
+    ownerId
+    participants { id name }
+  }
+}
+
+# Create a chat
+mutation CreateChat {
+  createChat(title: "My new chat", ownerId: "00000000-0000-0000-0000-000000000000") {
+    id
+    title
+  }
+}
+
+# Send a message
+mutation SendMessage($chatId: ID!) {
+  sendMessage(input: { chatId: $chatId, content: "Hello from client", userId: "00000000-0000-0000-0000-000000000000" }) {
+    message { id content }
+    reply { id content }
+    tokenSummary { tokensUsed }
+  }
+}
+
+# Get messages for a chat
+query GetMessages($chatId: ID!) {
+  getMessages(chatId: $chatId, limit: 100) {
+    id
+    content
+    role
+    createdAt
+  }
+}

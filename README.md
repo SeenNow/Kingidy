@@ -68,6 +68,40 @@ The optimized files will be in the `dist` directory.
 3. **Search**: Use the search bar to find specific text within documents
 4. **Manage**: Delete individual documents or clear all documents from memory
 
+## Chat (GraphQL powered)
+
+This project includes an experimental GraphQL server for Chat with token counting (local MVP). To run the server and use the Chat UI:
+
+1. Start the GraphQL server (server folder):
+
+```powershell
+cd server
+npm install
+cp .env.example .env
+npx prisma generate
+npx prisma migrate dev --name init
+npm run prisma:seed
+npm run dev
+```
+
+2. Start the front-end (root):
+
+```powershell
+npm install
+npm run dev
+```
+
+3. Visit `http://localhost:5173` (or Vite dev URL) and click the Chat link in the nav bar.
+
+Notes:
+- The backend uses SQLite for local development and can be switched to Postgres/PostGIS by updating `prisma/schema.prisma` and `DATABASE_URL`.
+- Token estimation uses a simplified whitespace-based estimator; for production use `@dqbd/tiktoken`.
+ - Gemini / Google Generative AI: The server includes an optional adapter to call Google Gemini models if `GOOGLE_API_KEY` is provided. Set `GOOGLE_API_KEY`, `GOOGLE_PROJECT_ID`, and `GOOGLE_LOCATION` in `server/.env` to enable.
+
+CSS and Component Styles:
+  - Component-specific styles have been moved to `public/js/styles/components.css`. Any inline styles were removed and replaced with CSS classes and CSS variables where dynamic values are required.
+  - Dynamic per-element values (e.g., subject color, hero-grid transforms, and carousel pill positions) are passed via CSS custom properties (`--subject-color`, `--x`, `--rotation`, etc.) set in component render logic.
+
 ## Project Structure
 
 ```

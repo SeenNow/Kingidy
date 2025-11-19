@@ -63,19 +63,19 @@ const Subjects: React.FC = () => {
 
 			<div className="subjects-grid">
 				{subjects.map((subject, idx) => (
-					<div key={idx} className="subject-card" style={{ borderTopColor: subject.color }}>
-						<div className="subject-icon" style={{ color: subject.color }}>
+					<div key={idx} className="subject-card" style={{ ['--subject-color' as any]: subject.color }}>
+						<div className="subject-icon">
 							<i className={`fas ${subject.icon}`}></i>
 						</div>
 						<h3 className="subject-name">{subject.name}</h3>
 						<div className="subject-topics">
 							{subject.topics.map((topic, tidx) => (
-								<span key={tidx} className="topic-tag" style={{ borderColor: subject.color, color: subject.color }}>
+								<span key={tidx} className="topic-tag">
 									{topic}
 								</span>
 							))}
 						</div>
-						<button className="explore-btn" style={{ backgroundColor: subject.color }}>
+						<button className="explore-btn">
 							Explore <i className="fas fa-arrow-right"></i>
 						</button>
 					</div>

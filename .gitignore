@@ -9,4 +9,3 @@ coverage/
 .idea/
 server/dev.db
 server/*.db
-docs/DEPLOYMENT.md
